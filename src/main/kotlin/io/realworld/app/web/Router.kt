@@ -41,6 +41,7 @@ fun Routing.profiles(profileController: ProfileController) {
 }
 
 fun Routing.articles(articleController: ArticleController, commentController: CommentController) {
+    get("/api/articles/search") { articleController.search(this.context) }
     route("articles") {
         authenticate {
             get("feed") { articleController.feed(this.context) }

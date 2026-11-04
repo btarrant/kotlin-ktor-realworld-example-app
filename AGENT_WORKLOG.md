@@ -1,0 +1,13 @@
+# Agent worklog
+
+- **Agent/model:** one primary Codex coding agent. The exact runtime model identifier was not exposed; no subagents or other models were invoked. No reusable skill was created: ordinary JUnit/Ktor tests and Gradle commands were sufficient for this project.
+- **Representative actual user instructions:** “Run baseline checks before modifying code”; “Never fabricate evidence”; “Never claim unexecuted tests passed”; “Do not push the final submission or submit anything externally without my approval.” There were no delegated prompts.
+- **Contribution:** inspected architecture/build/tests, created the requested fork, implemented public title/body search backed by H2/Exposed, added repository and real Ktor integration tests, repaired the legacy build for JDK 17/21, configured cached CI and wrote assessment notes.
+- **Mistakes and corrections:** initial filesystem search was too broad; initially downloaded ARM JDKs on an Intel host; an unsupported gh flag and guessed JDK directory were corrected. The first Exposed upgrade compiled but failed against H2 2.x; actual test XML identified the linkage error and drove the compatible modular upgrade. Ktor test fixtures also pulled unavailable historical artifacts; excluded the unused client-fixture module. These failures are recorded in the journal.
+- **Verification:** unchanged baseline failed dependency resolution on both JDKs. Final clean builds passed on Temurin 17.0.21 (11s) and 21.0.13 (24s). Parsed XML confirms 8 new passing tests and 25 original skipped tests per build. `javap` confirms major version 60 (JVM 16). Mutation from OR to AND caused 3 test failures; restored build passed. Workflow actionlint passed. Production HTTP smoke returned 200 empty results and 400 for blank q. Hosted Actions and cache hits are not claimed: final changes have not been pushed.
+- **Improvements:** inspect host architecture before downloads, verify legacy runtime dependency compatibility before selecting a migration, keep raw logs outside submission, parse test reports and use a deliberate query mutation to challenge tests. Avoid expanding into unrelated CRUD or adding orchestration without value.
+- **Limitations:** upstream article CRUD is unfinished; production search requires populated database rows. New table stores core article text, with remaining DTO metadata defaulted. No pagination/full-text index. Existing user/follow compiler warning remains. See the study guide and journal audit.
+
+Walkthrough recording: **TODO — add recording URL.**
+
+[Engineering journal](docs/assessment-notes/engineering-journal.md) · [Study guide](docs/assessment-notes/implementation-study-guide.md) · [Walkthrough outline](docs/assessment-notes/walkthrough-outline.md)

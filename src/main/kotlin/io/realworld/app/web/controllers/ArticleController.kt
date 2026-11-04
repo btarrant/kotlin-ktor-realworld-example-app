@@ -2,11 +2,25 @@ package io.realworld.app.web.controllers
 
 import io.ktor.application.ApplicationCall
 import io.ktor.request.receive
+import io.ktor.response.respond
+import io.ktor.http.HttpStatusCode
+import io.realworld.app.domain.repository.ArticleRepository
+import io.realworld.app.web.ErrorResponse
 import io.realworld.app.domain.ArticleDTO
 import io.realworld.app.domain.ArticlesDTO
 
-class ArticleController {
-//class ArticleController(private val articleService: ArticleService) {
+class ArticleController(private val articleRepository: ArticleRepository) {
+    suspend fun search(ctx: ApplicationCall) {
+        val term = ctx.request.queryParameters["q"]?.trim()
+        if (term.isNullOrEmpty()) {
+            ctx.respond(HttpStatusCode.BadRequest,
+                ErrorResponse(mapOf("q" to listOf("must not be blank"))))
+            return
+        }
+        val articles = articleRepository.search(term)
+        ctx.respond(ArticlesDTO(articles, articles.size))
+    }
+
 
     fun findBy(ctx: ApplicationCall): ArticlesDTO {
         val tag = ctx.parameters["tag"]

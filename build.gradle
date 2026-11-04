@@ -3,21 +3,19 @@ version '1.0-SNAPSHOT'
 
 buildscript {
     ext {
-        kotlin_version = "1.3.+"
+        kotlin_version = "2.0.21"
         slf4j_version = "2.0.9"
         ktor_version = "1.2.3"
         kodein_version = "6.1.0"
         hikaricp_version = "5.1.0"
         h2_version = "2.2.224"
-        exposed_version = "0.14.1"
+        exposed_version = "0.41.1"
         junit_version = "4.13.2"
         unirest_version = "1.4.9"
     }
 
     repositories {
-        mavenLocal()
         mavenCentral()
-        jcenter()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -26,12 +24,12 @@ buildscript {
 
 apply plugin: 'kotlin'
 apply plugin: 'application'
-mainClassName = "io.realworld.app.AppKt"
+application {
+    mainClass = "io.realworld.app.AppKt"
+}
 
 repositories {
-    mavenLocal()
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
@@ -44,8 +42,24 @@ dependencies {
     implementation "org.kodein.di:kodein-di-generic-jvm:$kodein_version"
     api "com.zaxxer:HikariCP:$hikaricp_version"
     api "com.h2database:h2:$h2_version"
-    api "org.jetbrains.exposed:exposed:$exposed_version"
+    api "org.jetbrains.exposed:exposed-core:$exposed_version"
+    api "org.jetbrains.exposed:exposed-dao:$exposed_version"
+    api "org.jetbrains.exposed:exposed-jdbc:$exposed_version"
 
-    testCompile "junit:junit:$junit_version"
-    testCompile "com.mashape.unirest:unirest-java:$unirest_version"
+    testImplementation("io.ktor:ktor-server-test-host:$ktor_version") {
+        // Unused client test fixtures pull serialization artifacts no longer on Maven Central.
+        exclude group: 'io.ktor', module: 'ktor-client-tests-jvm'
+    }
+    testImplementation "junit:junit:$junit_version"
+    testImplementation "com.mashape.unirest:unirest-java:$unirest_version"
+}
+
+// Keep bytecode consistent across the JDK 17/21 build matrix.
+java {
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = "16"
 }

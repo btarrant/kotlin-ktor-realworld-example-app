@@ -36,3 +36,6 @@ build/
 #System Files
 .DS_Store
 Thumbs.db
+
+# Kotlin compiler local state
+.kotlin/
