@@ -71,3 +71,44 @@ Start: 2026-11-04T02:39:18.931761+00:00
 Unresolved risks: existing article CRUD cannot populate the new table; fresh production database is empty. Other article metadata uses DTO defaults. Search is unpaginated and scans text; only H2 and macOS local execution verified. 25 legacy tests remain skipped; unrelated endpoints have not been validated after the necessary dependency upgrade. Existing UserRepository generic warning remains. Hosted Linux CI and cache behavior await approval to publish. No walkthrough recording has been made.
 
 Raw build logs, XML snapshots, downloaded tools and mutation backup are kept outside submission at `../evidence` and `../toolchains`; concise evidence is retained here. Improvements for a repeat: inspect host architecture before provisioning, check legacy dependency runtime compatibility early, and preserve numbered failure logs rather than reusing a log filename (the first feature dependency failure was captured in this journal but its raw log was overwritten).
+
+## 2026-11-04T03:23:33.296972+00:00 — focused persistence regression work started
+- Request: add H2 compatibility coverage without changing production behavior or dependencies. Inspected JUnit 4 @Before/real Exposed H2 conventions in ArticleRepositoryTest, UserRepository and UserService.
+- Confirmed source predicates: follow stores (target, actor), but lookup checks (actor, target) for the service calling convention and unfollow deletes (actor, target). Compared original upstream in prior review; these predicates predate search. Tests will independently inspect stored rows.
+- Decision: passing compatibility tests remain in normal test/CI. Known-defect tests assert intended behavior and remain failing in an explicitly named upstreamDefectDiagnostics task, isolated by JUnit Category. No @Ignore, expected-failure wrappers or ignoreFailures. Normal test task will visibly report the diagnostic exclusion.
+
+## 2026-11-04T03:25:00.331411+00:00 — first targeted compatibility result
+- Added shared JUnit 4 H2 fixture with unique in-memory database per test, explicit SHUTDOWN and Exposed closeAndUnregister cleanup; fixtures use persisted row pairs as independent oracle. No production/dependency changes.
+- Command (repository cwd): `JAVA_HOME="$PWD/../toolchains/x64-17/jdk-17.0.21+9/Contents/Home" ./gradlew test --tests '*UserRepositoryCompatibilityTest' --no-daemon` — SUCCESS, 22s. XML independently parsed: 6 tests, 0 failures/errors/skips. Snapshot ../evidence/user-compat17/.
+- Coverage: create/lookup field roundtrip and missing records; positive distinct generated identities matching reads; full update including lookup keys, stable identity and unrelated-user preservation; partial update; duplicate composite-key SQLState 23505 with original row intact; multiple followers/followees and reciprocal pairs stored in correct direction.
+- Started `JAVA_HOME="$PWD/../toolchains/x64-17/jdk-17.0.21+9/Contents/Home" ./gradlew upstreamDefectDiagnostics --no-daemon`; results pending.
+
+## 2026-11-04T03:25:37.388604+00:00 — upstream diagnostics confirmed on JDK 17
+- Explicit diagnostics task FAILED as intended, 11s. Parsed XML: 3 tests, 3 assertion failures, 0 errors/skips. All fixtures ran successfully; failures demonstrate wrong relationship semantics rather than setup or linkage errors. Forward lookup returns false; unfollow leaves forward row; reciprocal-case unfollow removes the wrong row. Preserved XML under ../evidence/user-diagnostics17.
+- The default lifecycle excludes this named category with a visible message; diagnostic task has its own report and normal failure exit. This is an explicit separation, not a claim of full passing coverage.
+- No unexpected compatibility-test failures or production changes so far. One report-read command ran before the diagnostics XML existed and got a shell glob error; waited for task completion before inspection.
+- Started targeted JDK 21 run with `JAVA_HOME="$PWD/../toolchains/x64-21/jdk-21.0.13+9/Contents/Home" ./gradlew test --tests '*UserRepositoryCompatibilityTest' --no-daemon`.
+
+## 2026-11-04T03:26:29.607385+00:00 — JDK 21 targeted verification complete
+- Targeted compatibility task SUCCESS, 16s; independently parsed snapshot: 6 passed, 0 failures/errors/skips. ../evidence/user-compat21/.
+- `JAVA_HOME="$PWD/../toolchains/x64-21/jdk-21.0.13+9/Contents/Home" ./gradlew upstreamDefectDiagnostics --no-daemon` FAILED, 11s. XML confirms the same 3 assertion failures, 0 errors/skips; ../evidence/user-diagnostics21/. No fixture/setup failures and no fixes to production behavior.
+- Both diagnostic runs use normal Gradle failure handling; no suppression/expected-failure assertion wrapper. Expected duplicate-key rejection in the compatibility suite is separately checked for exact exception class and SQLState, preserving the original relationship.
+- Started relevant regression check: `JAVA_HOME="$PWD/../toolchains/x64-17/jdk-17.0.21+9/Contents/Home" ./gradlew build --no-daemon` to exercise all default tests together (including existing article search) and application packaging after new fixture lifecycle and test-task configuration.
+
+## 2026-11-04T03:27:15.358331+00:00 — default regression build on JDK 17
+- `JAVA_HOME="$PWD/../toolchains/x64-17/jdk-17.0.21+9/Contents/Home" ./gradlew build --no-daemon` SUCCESS, 19s. Independently parsed XML snapshot ../evidence/persistence-regression17/: 39 total, 25 original skips, 14 executed/passed, 0 failures/errors. Explicitly confirmed diagnostic class is absent from default report rather than counted as a passing/skipped test.
+- `git diff --exit-code 52a05b1 -- src/main` and `git diff --check` passed: production source unchanged and no whitespace errors. No dependency versions changed.
+- Started `JAVA_HOME="$PWD/../toolchains/x64-21/jdk-21.0.13+9/Contents/Home" ./gradlew build --no-daemon` for equivalent default regression verification.
+
+## 2026-11-04T03:27:49.840436+00:00 — persistence follow-up complete
+- JDK 21 default build SUCCESS, 20s. Independently parsed XML snapshot ../evidence/persistence-regression21/: 39 total, 25 legacy skips, 14 passed, 0 failures/errors. Diagnostics are separately reported and excluded with a visible task message. Existing 8 search tests and all 6 new compatibility tests execute together on both JDKs.
+- Final targeted results per JDK: compatibility 6/6 passed; diagnostics 3/3 failed on intended assertions (0 errors/skips). Normal lifecycle passing does not certify correct follow lookup/unfollow behavior.
+- Changed only build.gradle test-task configuration, three new test files, this journal, implementation study guide and concise worklog. No production source, dependencies, CI workflow or legacy @Ignore annotations changed. Changes remain uncommitted; no push/submission.
+- Remaining risks: confirmed upstream reversed lookup/unfollow predicates; 25 original tests still ignored; no new user HTTP/authentication/tag/concurrency coverage. Existing EntityID/Long generic warning remains. Hosted CI not rerun because changes have not been published. No reusable skill or new dependency needed.
+
+## 2026-11-04T03:33:16.777798+00:00 — publication review and hosted CI authorization
+- User explicitly authorized committing reviewed persistence coverage, pushing only feat/article-search to the existing btarrant fork, and inspecting hosted JDK 17/21 results. No production changes, default-branch merge, PR or recruiter submission authorized. Stop and report cause before edits if hosted CI fails.
+- Reviewed all seven pending paths: 6 compatibility tests, 3 category-isolated diagnostic tests, shared fixture, Gradle task changes and three relevant documentation files. No production/dependency changes; diff-check passed.
+- Publication scan found no absolute personal home paths, private keys or GitHub/AWS credential patterns in tracked/candidate text files. Reviewed fixture passwords/example.com identities and inherited signing placeholder as example data; no new credentials or confidential material identified. Evidence/toolchains/generated outputs remain outside the tracked submission; only the required wrapper jar is tracked. Relative versioned toolchain paths in the journal document actual local commands and do not configure CI.
+- `JAVA_HOME="$PWD/../toolchains/x64-21/jdk-21.0.13+9/Contents/Home" ./gradlew build --dry-run --no-daemon` completed successfully; task graph includes test/check/build and excludes upstreamDefectDiagnostics. ci.yml invokes build with a JDK 17/21 matrix, so inherits the same exclusion. Existing master-only gradle.yml does not trigger on this feature-branch push.
+- Commit/push/hosted outcomes will be reported from actual GitHub results; no hosted success claimed at this point.

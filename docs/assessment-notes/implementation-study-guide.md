@@ -23,6 +23,24 @@ The minimal table stores slug, nullable title/description, and body. Other `Arti
 
 Run `JAVA_HOME=<JDK home> ./gradlew clean build --no-daemon` separately for JDK 17 and 21. Read `build/test-results/test/TEST-*.xml` and `build/reports/tests/test/index.html`; do not infer success from compilation or ignored tests. See the journal for actual executions, failures and final counts.
 
+## Focused user persistence regressions
+
+`UserRepositoryCompatibilityTest.kt` exercises real Exposed 0.41.1/H2 2.2.224 persistence: creation and lookup, generated IDs, full/partial updates, composite-key rejection (SQLState 23505), multiple followers/followees, reciprocal relationships and stored pair direction. `UserRepositoryFixture.kt` creates a unique in-memory database per test and explicitly shuts it down/unregisters it afterward. Assertions compare independently read rows, rather than relying on the defective following lookup.
+
+`UserFollowDiagnosticsTest.kt` separately asserts the intended behavior of following-status lookup, unfollow removal, and preservation of reciprocal/unrelated relationships. Source inspection confirmed two upstream predicate defects: `follow` stores `(target, actor)`, while lookup and unfollow use the reverse pair. Consequently these diagnostics are expected to fail until a separately authorized production fix; their assertions are not weakened or wrapped as expected exceptions.
+
+The standard `test` task explicitly excludes the `KnownUpstreamDefect` JUnit category and prints a pointer to `./gradlew upstreamDefectDiagnostics`. That dedicated task runs all three diagnostics with ordinary failure reporting and nonzero exit on failure. It is deliberately separate from the passing CI lifecycle; no `@Ignore` or `ignoreFailures` is used for these new tests. Standard test counts therefore do not include the three diagnostics. The original 25 ignored tests remain unchanged.
+
+Reproduce from repository root (select JDK home for each run):
+
+```sh
+JAVA_HOME=<JDK home> ./gradlew test --tests '*UserRepositoryCompatibilityTest' --no-daemon
+JAVA_HOME=<JDK home> ./gradlew upstreamDefectDiagnostics --no-daemon
+JAVA_HOME=<JDK home> ./gradlew build --no-daemon
+```
+
+Compatibility results appear in `build/reports/tests/test`; diagnostics have their own `build/reports/tests/upstreamDefectDiagnostics` report. Verified on Temurin 17.0.21 and 21.0.13: six compatibility tests pass; all three diagnostics fail with assertion failures and no setup errors. Default builds pass 14 active tests with 25 original skips; diagnostics are separate. Full command/outcome evidence is in the journal. These repository tests do not validate user HTTP/authentication behavior or repair upstream follow predicates.
+
 ## Build and CI
 
 The original Gradle 4.10/Kotlin 1.3.+ build could not resolve Exposed 0.14.1. Initial repair to monolithic Exposed 0.17.14 compiled but failed at runtime against H2 2.2.224 (`JdbcConnection.getSession` linkage error). Exposed 0.41.1 core/dao/jdbc fixes that compatibility issue. Adaptations are limited to `dao.id` imports, explicit `Follows` primary key and the `eq` import required by `deleteWhere`.
