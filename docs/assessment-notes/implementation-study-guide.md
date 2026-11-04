@@ -65,7 +65,7 @@ Verified local results on both JDKs: standard builds pass 18 active tests with 2
 
 No production change is justified solely to make exploratory probes pass. Before broader deployment, define duplicate-input, query-size and pagination/result-cap contracts and assess full-text indexing/concurrency under representative load. Do not claim full RealWorld compatibility or full Unicode case folding.
 
-See the engineering journal for actual matrix outcomes, repeated-parameter policy observations, Unicode limitations, measured values and the included RealWorld collection result. The collection's default runner points at a public server; verification must explicitly use localhost. Failures in unfinished legacy routes do not establish a search regression. Current local additions have not been published, so prior hosted success applies only to commit `ea70327`.
+See the engineering journal for actual matrix outcomes, repeated-parameter policy observations, Unicode limitations, measured values and the included RealWorld collection result. The collection's default runner points at a public server; verification must explicitly use localhost. Failures in unfinished legacy routes do not establish a search regression. Commit `6a6f120` passed hosted JDK 17/21 builds in run [41771910410](https://github.com/btarrant/kotlin-ktor-realworld-example-app/actions/runs/41771910410); each report contained 18 passing tests and 25 original skips.
 
 ## Build and CI
 
@@ -84,5 +84,5 @@ No JVM 16 target existed upstream. Both Java and Kotlin now explicitly target 16
 - **Why LOCATE instead of LIKE?** Bound literal substring input avoids SQL wildcard semantics and escaping mistakes. This implementation is verified against H2, the configured database.
 - **Why not enable all old tests?** They exercise unfinished features and inconsistent routes. They remain visibly skipped; claiming full application coverage would be misleading.
 - **Can this scale?** No pagination, cap or full-text index was requested. The substring query scans text and returns all matches. Large datasets need explicit pagination/count semantics and a search index.
-- **What remains unverified?** Hosted Actions execution/cache restoration, other databases/operating systems, broad Unicode collation semantics, and unrelated legacy endpoints. See final audit in the journal.
-- **Why no Codex skill or extra agent?** The verification is project-specific and reproducible with two test classes and Gradle. Extra orchestration would not improve the evidence for this task.
+- **What remains unverified?** Cache restoration behavior, other databases, broad Unicode collation semantics, and unrelated legacy endpoints. Hosted JDK 17/21 execution succeeded as recorded above. See final audit in the journal.
+- **Why add a skill afterward?** Initial verification used ordinary tests. The later `.agents/skills/api-feature-verification/SKILL.md` standardizes contract discovery, baseline comparison, test selection and evidence reporting across API and persistence targets. See [reuse validation](skill-verification-report.md) for actual executions and limitations.
