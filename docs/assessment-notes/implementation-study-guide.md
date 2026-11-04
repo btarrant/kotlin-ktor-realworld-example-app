@@ -41,6 +41,32 @@ JAVA_HOME=<JDK home> ./gradlew build --no-daemon
 
 Compatibility results appear in `build/reports/tests/test`; diagnostics have their own `build/reports/tests/upstreamDefectDiagnostics` report. Verified on Temurin 17.0.21 and 21.0.13: six compatibility tests pass; all three diagnostics fail with assertion failures and no setup errors. Default builds pass 14 active tests with 25 original skips; diagnostics are separate. Full command/outcome evidence is in the journal. These repository tests do not validate user HTTP/authentication behavior or repair upstream follow predicates.
 
+## Expanded search verification
+
+The assessment PDF requires Search over titles/bodies with the existing response envelope. It explicitly requests pagination for Popular Articles, but does not specify Search pagination, maximum query length, duplicate-q policy, accent folding, Unicode normalization, or latency targets. These are product decisions; tests must not create new semantics implicitly.
+
+`ArticleSearchEdgeCasesTest.kt` adds release checks for multiple matches/count/order, a 2,048-character literal term without truncation, whitespace padding versus literal internal whitespace, and accented/Cyrillic/CJK/emoji matching with response-text preservation. Ordering is database-ID/insertion order, not alphabetical or relevance order. An isolated `ArticleSearchFixture.kt` shuts down and unregisters each H2 database.
+
+`./gradlew searchExploration --no-daemon` separately runs five characterization tests: repeated/ambiguous q, very large queries, Unicode normalization/case boundaries, bounded large results/resource observations, and pagination parameters. The default test task and JDK matrix exclude this named JUnit category and announce the separate task. No time/memory thresholds or unsupported-contract assertions enter release CI. Existing known-defect diagnostics remain separately runnable.
+
+Exploratory resource output reports repository duration, HTTP test-host duration, response UTF-8 bytes, and coarse heap snapshots/pool peaks for 100/1,000/5,000 rows. These are single-process observations affected by warmup, GC and retained data, not statistically reliable benchmarks, allocation profiling, throughput tests or capacity guarantees. The test host bypasses network parsing limits; use the journal's separate production-CIO socket observations for transport behavior. No result cap, pagination or index is silently introduced.
+
+Verified local results on both JDKs: standard builds pass 18 active tests with 25 original skips; all six exploratory tests pass separately. Observations:
+
+| Area | Evidence and limitation |
+| --- | --- |
+| Multiple matches/order | Exact count 3 and ID order repeated three times; both-field matches return once; description-only rows excluded |
+| Large/whitespace input | 2,048-character literal and padded queries pass release checks; test host accepts megabyte inputs, but CIO rejects sampled request lines above its transport limit |
+| Ambiguous q | First value wins, blank first yields 400; encoded duplicate names merge and uppercase Q is accepted case-insensitively by Ktor; duplicate-key policy remains unspecified by assessment |
+| Unicode | Accented case, Cyrillic, CJK and emoji pass; no accent folding, canonical normalization or full case folding (sharp-s, dotted-I, sigma boundaries) |
+| Resource observations | 5,000 rows/2,500 matches produce 3,001,425 bytes; JDK21 repository sample ~27ms, HTTP host ~154ms; warmup/GC prevent capacity conclusions |
+| Pagination | 25 results returned with or without limit/offset, including malformed values; no pagination added |
+| RealWorld collection | All 31 requests complete but return 404 at /api routes; 17 assertion and 12 script failures. Baseline routes lack /api. Unprefixed probes additionally show registration 500 and public articles 401; tags returns 200 |
+
+No production change is justified solely to make exploratory probes pass. Before broader deployment, define duplicate-input, query-size and pagination/result-cap contracts and assess full-text indexing/concurrency under representative load. Do not claim full RealWorld compatibility or full Unicode case folding.
+
+See the engineering journal for actual matrix outcomes, repeated-parameter policy observations, Unicode limitations, measured values and the included RealWorld collection result. The collection's default runner points at a public server; verification must explicitly use localhost. Failures in unfinished legacy routes do not establish a search regression. Current local additions have not been published, so prior hosted success applies only to commit `ea70327`.
+
 ## Build and CI
 
 The original Gradle 4.10/Kotlin 1.3.+ build could not resolve Exposed 0.14.1. Initial repair to monolithic Exposed 0.17.14 compiled but failed at runtime against H2 2.2.224 (`JdbcConnection.getSession` linkage error). Exposed 0.41.1 core/dao/jdbc fixes that compatibility issue. Adaptations are limited to `dao.id` imports, explicit `Follows` primary key and the `eq` import required by `deleteWhere`.

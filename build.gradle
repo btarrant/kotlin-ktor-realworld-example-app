@@ -67,9 +67,11 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 // Keep known upstream behavior defects visible without treating them as compatibility regressions.
 tasks.named('test', Test) {
     useJUnit {
-        excludeCategories 'io.realworld.app.domain.repository.KnownUpstreamDefect'
+        excludeCategories 'io.realworld.app.domain.repository.KnownUpstreamDefect',
+            'io.realworld.app.web.controllers.SearchExploration'
     }
     doFirst {
+        logger.lifecycle('Search exploration/performance checks run separately: ./gradlew searchExploration')
         logger.lifecycle('Known upstream follow defects are excluded here; run ./gradlew upstreamDefectDiagnostics to see their failing assertions.')
     }
 }
@@ -82,5 +84,17 @@ tasks.register('upstreamDefectDiagnostics', Test) {
     classpath = sourceSets.test.runtimeClasspath
     useJUnit {
         includeCategories 'io.realworld.app.domain.repository.KnownUpstreamDefect'
+    }
+}
+
+// No performance thresholds or unsupported input contracts in release CI.
+tasks.register('searchExploration', Test) {
+    group = 'verification'
+    description = 'Runs bounded search characterization and resource observations outside release CI.'
+    dependsOn testClasses
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnit {
+        includeCategories 'io.realworld.app.web.controllers.SearchExploration'
     }
 }
