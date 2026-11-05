@@ -121,7 +121,7 @@ snapshots. Exploratory timing and heap observations are not capacity guarantees.
 
 ## 7. Walkthrough Recording
 
-Recording: TODO — add accessible walkthrough URL before submission
+Recording: [American Express AI Engineer assessment walkthrough](https://drive.google.com/file/d/1dKZSK3mfHC4Lz4rhNDoJ8_nRSLAsGBCF/view)
 
 ## 8. Supporting Documentation
 
